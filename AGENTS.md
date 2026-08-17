@@ -77,6 +77,8 @@ Sistema simples de cobrancas em monorepo, com backend Laravel 9, frontend Vue 3 
 
 - Priorize PHPUnit Feature e Unit para regras de dominio, auth, filtros, ordenacao, idempotencia e autorizacao.
 - Use relogio controlado; nao depender da data real da maquina.
+- Para testes backend que dependam de transacao, lock, unicidade, concorrencia, idempotencia ou comportamento SQL, use sempre um banco MySQL temporario no Docker, por exemplo `amar_assist_testing`, em vez de confiar apenas no SQLite em memoria.
+- Ao usar o banco MySQL temporario, passe variaveis de ambiente somente no comando de teste e nao altere `.env` real nem versione credenciais.
 - Frontend deve ter validacao minima dos fluxos criticos quando a UI existir.
 
 ## Git
