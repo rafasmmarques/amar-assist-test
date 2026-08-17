@@ -4,9 +4,9 @@ Sistema simples de cobrancas em monorepo, planejado para backend Laravel 9, fron
 
 ## Estado atual
 
-Este repositorio esta na Fase 6 do plano de implementacao: Autenticacao Sanctum.
+Este repositorio esta na Fase 7 do plano de implementacao: Modelo de dados.
 
-O backend Laravel 9 foi criado em `backend/` com os pacotes Sanctum e Horizon instalados em versoes compativeis. O frontend Vue 3 com Vite foi criado em `frontend/`. O ambiente Docker Compose sobe backend PHP-FPM, Nginx, frontend Vite, MySQL, Redis, worker de filas e Horizon. A autenticacao SPA usa cookies de sessao do Sanctum, CSRF e endpoints minimos de login, usuario autenticado e logout. Ainda nao ha regras funcionais, rotas de dominio, migrations de dominio, telas de negocio ou regras de autorizacao.
+O backend Laravel 9 foi criado em `backend/` com os pacotes Sanctum e Horizon instalados em versoes compativeis. O frontend Vue 3 com Vite foi criado em `frontend/`. O ambiente Docker Compose sobe backend PHP-FPM, Nginx, frontend Vite, MySQL, Redis, worker de filas e Horizon. A autenticacao SPA usa cookies de sessao do Sanctum, CSRF e endpoints minimos de login, usuario autenticado e logout. O modelo de dados inicial inclui clientes, contratos, cobrancas e detalhes 1:1 de pagamento. Ainda nao ha regras funcionais, rotas de dominio, telas de negocio ou regras de autorizacao.
 
 Laravel 9 esta fora do suporte atual, mas permanece como requisito obrigatorio do teste. Nao deve ser atualizado para Laravel 10+ sem mudanca explicita do requisito.
 
