@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Charge;
 use App\Models\Client;
 use App\Models\Contract;
+use App\Policies\ChargePolicy;
 use App\Policies\ClientPolicy;
 use App\Policies\ContractPolicy;
 // use Illuminate\Support\Facades\Gate;
@@ -18,6 +20,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Client::class => ClientPolicy::class,
+        Charge::class => ChargePolicy::class,
         Contract::class => ContractPolicy::class,
     ];
 

@@ -42,6 +42,12 @@ class Charge extends Model
         'billing_period' => 'date',
         'due_date' => 'date',
         'paid_at' => 'datetime',
+        'original_amount' => 'string',
+        'fixed_fee_amount' => 'string',
+        'paid_original_amount' => 'string',
+        'paid_fixed_fee_amount' => 'string',
+        'paid_late_interest_amount' => 'string',
+        'paid_total_amount' => 'string',
     ];
 
     public function contract(): BelongsTo

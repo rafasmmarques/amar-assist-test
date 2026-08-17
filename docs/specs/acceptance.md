@@ -23,6 +23,11 @@
 - Cobranca paga retorna snapshot imutavel com `paid_original_amount`, `paid_fixed_fee_amount`, `paid_late_interest_amount`, `paid_total_amount` e `paid_at`.
 - Cobranca aberta retorna total discriminado com original, multa fixa, juros, total, dias de atraso e data de referencia.
 - Pagamento e geracao de cobrancas sao idempotentes e transacionais.
+- `POST /charges/generate` recebe `contract_id`, `billing_period` no formato `YYYY-MM`, `payment_method`, `original_amount` e `fixed_fee_amount` opcional como strings decimais.
+- Geracao nao usa valores financeiros fixos no codigo e normaliza valores monetarios antes de persistir.
+- Geracao calcula `due_date` no backend pelo ciclo do contrato, sem aceitar vencimento no payload.
+- Geracao cria detalhes simulados por metodo sem armazenar PAN completo, CVV ou dados sensiveis de cartao.
+- Repeticao idempotente com os mesmos dados retorna a cobranca existente sem duplicar; repeticao com dados financeiros ou metodo diferentes retorna `409 Conflict`.
 - Ordenacao de cobrancas ocorre antes da paginacao.
 
 ## API
@@ -37,7 +42,7 @@
 - Responses de cobranca expõem valores monetarios como strings decimais de duas casas.
 - Responses nao expõem `card_reference`, PAN completo, CVV nem `pix_transaction_id`.
 - Listagens nao expõem `pix_key` nem `boleto_barcode`; detalhe expõe apenas os campos seguros definidos em `api.md`.
-- `POST /charges/generate` retorna `202 Accepted`, enfileira Job em Redis e recebe `billing_period` no primeiro dia da competencia e `contract_ids` opcional.
+- `POST /charges/generate` retorna `201 Created` na primeira geracao, pode retornar `200 OK` em repeticao idempotente, recebe `billing_period` em `YYYY-MM` e nao aceita `due_date`.
 - `billing_period` e persistido como data no primeiro dia do mes.
 - `POST /charges/{charge}/pay` aceita payload `{}` valido, retorna `200 OK`, nao aceita valores monetarios no payload, usa relogio do servidor em `America/Sao_Paulo` controlavel em testes, persiste snapshot e retorna o mesmo snapshot em repeticoes.
 - `POST /charges/{charge}/pay` aceita header opcional `Idempotency-Key` com ate 120 caracteres e deve retornar resultado consistente em repeticoes da mesma chave.
@@ -88,7 +93,6 @@ Quando a implementacao existir, PHPUnit deve cobrir:
 - ausencia de `card_reference` e `pix_transaction_id` em respostas;
 - throttle de login e protecao de escrita sensivel;
 - configuracao Sanctum SPA para CSRF, cookies e stateful domains.
-- `POST /charges/generate` assincrono com `202 Accepted` e Job Redis.
-- `tries` e `backoff` do Job de geracao em lote.
+- Geracao em lote assincrona por Job Redis nao integra o endpoint individual `POST /charges/generate` revisado; se implementada futuramente, deve ter contrato proprio registrado antes.
 
 Frontend futuro deve validar minimamente login, filtros, estados de tela e consumo do contrato da API.

@@ -70,32 +70,47 @@ Regras de contrato:
 
 ### Geracao de cobrancas
 
-`POST /charges/generate` deve enfileirar geracao em lote por competencia e retornar `202 Accepted`.
+`POST /charges/generate` cria uma cobranca simulada para um contrato e competencia. A primeira geracao deve retornar `201 Created`; repeticoes idempotentes com os mesmos dados podem retornar `200 OK`.
 
 Payload minimo:
 
 ```json
 {
-  "billing_period": "2026-08-01",
-  "contract_ids": [1, 2, 3]
+  "contract_id": 1,
+  "billing_period": "2026-08",
+  "payment_method": "boleto",
+  "original_amount": "100.00",
+  "fixed_fee_amount": "5.00"
 }
 ```
 
 Regras:
 
-- `billing_period` deve representar o primeiro dia da competencia mensal.
-- `contract_ids` e opcional; quando omitido, a geracao considera contratos ativos elegiveis.
-- A operacao deve despachar Job em fila Redis.
-- A resposta deve confirmar aceite do processamento, nao a conclusao de todas as cobrancas.
-- Idempotencia continua garantida por `contract_id + billing_period`; reexecucoes nao podem duplicar cobrancas.
+- `contract_id` e obrigatorio, inteiro, deve apontar para contrato existente e apto a gerar cobranca.
+- `billing_period` e obrigatorio no formato `YYYY-MM` e deve ser persistido como data no primeiro dia do mes.
+- `payment_method` e obrigatorio e aceita somente `boleto`, `pix` ou `card`.
+- `original_amount` e obrigatorio, decimal positivo, enviado e tratado como string decimal, nunca `float`.
+- `fixed_fee_amount` e opcional, decimal maior ou igual a zero, enviado e tratado como string decimal, com default `0.00`.
+- Valores monetarios devem ser normalizados antes de persistir.
+- `due_date` nao deve ser aceito no payload; deve ser calculado no backend com `billing_period` e `billing_cycle_day` do contrato, respeitando `America/Sao_Paulo`, ultimo dia valido do mes e anos bissextos.
+- Status inicial deve ser `open`.
+- Juros nao devem vir no payload nem ser persistidos na geracao.
+- Detalhes simulados devem ser gerados no backend conforme o metodo: boleto com codigo de barras simulado; Pix com chave ou identificador simulado; cartao com referencia tokenizada simulada, bandeira e `last4` ficticios seguros.
+- PAN completo, CVV e dados sensiveis de cartao nao devem ser aceitos, armazenados ou retornados.
+- Idempotencia e garantida por `contract_id + billing_period`: repeticao com os mesmos dados retorna a cobranca existente sem duplicacao; se `payment_method`, `original_amount` ou `fixed_fee_amount` forem diferentes, retornar `409 Conflict`.
+- A geracao deve usar transacao, preservar a restricao unica de `contract_id + billing_period` e tratar concorrencia.
 - Resposta minima:
 
 ```json
 {
-  "message": "Geracao de cobrancas enfileirada.",
+  "message": "Cobranca gerada com sucesso.",
   "data": {
+    "status": "open",
     "billing_period": "2026-08-01",
-    "queued": true
+    "payment_method": "boleto",
+    "original_amount": "100.00",
+    "fixed_fee_amount": "5.00",
+    "due_date": "2026-08-10"
   }
 }
 ```

@@ -48,6 +48,12 @@ Esta especificacao define as regras de dominio para usuarios, clientes, contrato
 - `payment_method` aceita somente `boleto`, `card` ou `pix`.
 - `status` aceita somente `open` ou `paid`.
 - Valores monetarios devem usar decimal seguro, arredondamento half-up explicito para duas casas e nunca `float`.
+- Geracao de cobranca recebe valores monetarios como strings decimais; `original_amount` e obrigatorio positivo e `fixed_fee_amount` e opcional maior ou igual a zero, com default `0.00`.
+- Valores monetarios de entrada devem ser normalizados antes da persistencia e nao podem ser definidos como constantes fixas no codigo.
+- `due_date` nao pode vir do cliente; deve ser calculada no backend usando `billing_period` e `billing_cycle_day` do contrato, com timezone `America/Sao_Paulo`.
+- O status inicial de cobranca gerada deve ser `open`.
+- Juros nao sao recebidos no payload nem persistidos na geracao; devem ser calculados sob demanda pela data de referencia.
+- Detalhes simulados de pagamento devem ser gerados no backend conforme `payment_method`: codigo de barras simulado para boleto, chave ou identificador simulado para Pix, e referencia tokenizada simulada, bandeira e `last4` ficticios seguros para cartao.
 - Snapshot minimo persistido no pagamento: `paid_original_amount`, `paid_fixed_fee_amount`, `paid_late_interest_amount`, `paid_total_amount` e `paid_at`.
 - Para cobranca aberta, totais de exibicao devem discriminar `original_amount`, `fixed_fee_amount`, `late_interest_amount`, `total_amount`, `days_late` e `reference_date`.
 - Para cobranca paga, totais de exibicao devem usar somente o snapshot persistido: `paid_original_amount`, `paid_fixed_fee_amount`, `paid_late_interest_amount`, `paid_total_amount` e `paid_at`.
@@ -96,7 +102,10 @@ Pagamento deve:
 - Geracao deve respeitar restricao unica `contract_id + billing_period`.
 - `payment_method` nao pode ser usado para permitir duas faturas do mesmo contrato e competencia.
 - `idempotency_key`, quando usada em endpoints de escrita, deve ter restricao unica.
-- Geracao deve usar transacao e tratar concorrencia.
+- A primeira geracao de uma cobranca deve retornar `201 Created`.
+- Repeticao com mesmo `contract_id`, `billing_period`, `payment_method`, `original_amount` e `fixed_fee_amount` deve retornar a cobranca existente sem duplicacao, podendo retornar `200 OK`.
+- Se ja existir cobranca para `contract_id + billing_period` com novos dados financeiros ou `payment_method` diferentes, a API deve retornar `409 Conflict`.
+- Geracao deve usar transacao, preservar a restricao unica de `contract_id + billing_period` e tratar concorrencia.
 
 ## Ordenacao de cobrancas
 
@@ -112,10 +121,9 @@ A implementacao deve usar expressao SQL com `CASE` ou equivalente antes de `pagi
 
 ## Filas e cache
 
-- O uso de filas e obrigatorio em um caso pequeno: geracao em lote de cobrancas por competencia.
-- A fila deve usar Redis.
-- O Job deve ser idempotente por competencia e contrato, respeitando `contract_id + billing_period`.
-- O Job deve definir `tries` e `backoff`, e registrar falhas sem expor dados sensiveis.
+- A geracao individual de `POST /charges/generate` e sincrona e nao despacha Job.
+- Geracao em lote por fila Redis permanece possibilidade futura e deve usar endpoint distinto ou contrato revisado antes da implementacao.
+- Quando houver Job de geracao em lote, ele deve ser idempotente por competencia e contrato, definir `tries` e `backoff`, e registrar falhas sem expor dados sensiveis.
 - Cache planejado: resumo operacional nao sensivel de cobrancas por status do usuario autenticado.
 - Chave planejada: `charges:summary:user:{user_id}:filters:{hash}`.
 - TTL inicial: 60 segundos.

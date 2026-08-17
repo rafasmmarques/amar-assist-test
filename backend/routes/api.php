@@ -12,6 +12,7 @@
 */
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\ChargeController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContractController;
 use App\Http\Resources\AuthenticatedUserResource;
@@ -34,4 +35,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/clients/{client}/contracts', [ContractController::class, 'index']);
     Route::post('/clients/{client}/contracts', [ContractController::class, 'store']);
     Route::get('/contracts/{contract}', [ContractController::class, 'show']);
+
+    Route::get('/charges', [ChargeController::class, 'index']);
+    Route::get('/charges/{charge}', [ChargeController::class, 'show']);
+    Route::post('/charges/generate', [ChargeController::class, 'generate'])->middleware('throttle:charge-writes');
+    Route::post('/charges/{charge}/pay', [ChargeController::class, 'pay'])->middleware('throttle:charge-writes');
 });
