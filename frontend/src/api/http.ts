@@ -43,7 +43,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   })
 
   if (!response.ok) {
-    throw await response.json().catch(() => ({ message: 'Falha na requisicao.' }))
+    throw await response.json().catch(() => ({ message: 'Falha na requisição.' }))
   }
 
   if (response.status === 204) {
@@ -57,7 +57,7 @@ export function getCsrfCookie(): Promise<void> {
   return apiRequest<void>('/sanctum/csrf-cookie')
 }
 
-export function extractErrorMessage(error: unknown, fallback = 'Nao foi possivel concluir a operacao.'): string {
+export function extractErrorMessage(error: unknown, fallback = 'Não foi possível concluir a operação.'): string {
   const apiError = error as ApiError
   const firstFieldError = apiError.errors ? Object.values(apiError.errors).flat()[0] : null
 

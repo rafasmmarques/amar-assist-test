@@ -4,11 +4,12 @@
       <div>
         <p class="eyebrow">Clientes</p>
         <h2 id="clients-title">Cadastro e consulta</h2>
+        <span>Gerencie dados cadastrais e status de atendimento.</span>
       </div>
       <button type="button" @click="loadClients">Atualizar</button>
     </div>
 
-    <form class="toolbar" @submit.prevent="loadClients">
+    <form class="toolbar filter-panel" aria-label="Filtros de clientes" @submit.prevent="loadClients">
       <label>
         Nome
         <input v-model="filters.name" placeholder="Buscar por nome" />
@@ -29,7 +30,12 @@
     </form>
 
     <section class="panel">
-      <h3>Novo cliente</h3>
+      <div class="section-header">
+        <div>
+          <h3>Novo cliente</h3>
+          <span>Cadastre uma pessoa física ou jurídica.</span>
+        </div>
+      </div>
       <form class="form-grid" @submit.prevent="submitClient">
         <label>
           Nome
@@ -37,26 +43,38 @@
         </label>
         <label>
           Tipo
-          <select v-model="form.document_type">
+          <select v-model="form.document_type" @change="form.document = maskDocument(form.document, form.document_type)">
             <option value="cpf">CPF</option>
             <option value="cnpj">CNPJ</option>
           </select>
         </label>
         <label>
           Documento
-          <input v-model="form.document" required />
+          <input
+            :value="form.document"
+            :placeholder="form.document_type === 'cpf' ? '000.000.000-00' : '00.000.000/0000-00'"
+            required
+            inputmode="numeric"
+            @input="updateDocument"
+          />
         </label>
         <label>
-          Endereco
+          Endereço
           <input v-model="form.address" />
         </label>
         <label>
           Contato
-          <input v-model="form.contact" />
+          <input
+            :value="form.contact"
+            inputmode="tel"
+            placeholder="(11) 99999-9999"
+            @input="updateContact"
+          />
         </label>
         <button type="submit" :disabled="saving">{{ saving ? 'Salvando...' : 'Salvar cliente' }}</button>
       </form>
-      <p v-if="success" class="feedback feedback-success">{{ success }}</p>
+      <p v-if="formError" class="feedback feedback-error" role="alert">{{ formError }}</p>
+      <p v-if="success" class="feedback feedback-success" role="status">{{ success }}</p>
     </section>
 
     <section class="panel">
@@ -66,17 +84,18 @@
       </div>
 
       <p v-if="loading" class="state-message">Carregando clientes...</p>
-      <p v-else-if="error" class="feedback feedback-error" role="alert">{{ error }}</p>
-      <p v-else-if="clients.length === 0" class="state-message">Nenhum cliente encontrado.</p>
+      <p v-else-if="loadError" class="feedback feedback-error" role="alert">{{ loadError }}</p>
+      <p v-if="actionError" class="feedback feedback-error" role="alert">{{ actionError }}</p>
+      <p v-if="!loading && !loadError && clients.length === 0" class="state-message">Nenhum cliente encontrado.</p>
 
-      <div v-else class="table-wrap">
-        <table>
+      <div v-if="!loading && !loadError && clients.length > 0" class="table-wrap">
+        <table class="data-table">
           <thead>
             <tr>
               <th>Nome</th>
               <th>Documento</th>
               <th>Status</th>
-              <th>Acoes</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -86,7 +105,11 @@
                 <small>{{ client.contact || 'Sem contato' }}</small>
               </td>
               <td>{{ client.document_type.toUpperCase() }} {{ client.document }}</td>
-              <td>{{ statusLabel(client.status) }}</td>
+              <td>
+                <span class="status-badge" :class="`status-badge--${client.status}`">
+                  {{ statusLabel(client.status) }}
+                </span>
+              </td>
               <td>
                 <button
                   type="button"
@@ -96,11 +119,15 @@
                 >
                   {{ client.status === 'active' ? 'Desativar' : 'Ativar' }}
                 </button>
+                <small v-if="client.status === 'active'" class="action-hint">
+                  Se houver contrato associado, a API bloqueia a desativação.
+                </small>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+      <p v-if="clients.length > 0" class="pagination-note">Mostrando {{ clients.length }} de {{ total }} clientes.</p>
     </section>
   </section>
 </template>
@@ -122,7 +149,9 @@ const clients = ref<Client[]>([])
 const total = ref(0)
 const loading = ref(false)
 const saving = ref(false)
-const error = ref<string | null>(null)
+const loadError = ref<string | null>(null)
+const formError = ref<string | null>(null)
+const actionError = ref<string | null>(null)
 const success = ref<string | null>(null)
 const filters = reactive<ClientFilters>({
   name: '',
@@ -145,14 +174,14 @@ onMounted(() => {
 
 async function loadClients() {
   loading.value = true
-  error.value = null
+  loadError.value = null
 
   try {
     const response = await fetchClients(filters)
     clients.value = response.data
     total.value = response.meta.total
   } catch (requestError) {
-    error.value = extractErrorMessage(requestError, 'Nao foi possivel carregar clientes.')
+    loadError.value = extractErrorMessage(requestError, 'Não foi possível carregar clientes.')
   } finally {
     loading.value = false
   }
@@ -160,7 +189,8 @@ async function loadClients() {
 
 async function submitClient() {
   saving.value = true
-  error.value = null
+  formError.value = null
+  actionError.value = null
   success.value = null
 
   try {
@@ -175,7 +205,7 @@ async function submitClient() {
     success.value = 'Cliente salvo.'
     await loadClients()
   } catch (requestError) {
-    error.value = extractErrorMessage(requestError, 'Nao foi possivel salvar o cliente.')
+    formError.value = extractErrorMessage(requestError, 'Não foi possível salvar o cliente.')
   } finally {
     saving.value = false
   }
@@ -183,7 +213,8 @@ async function submitClient() {
 
 async function toggleClient(client: Client) {
   saving.value = true
-  error.value = null
+  formError.value = null
+  actionError.value = null
   success.value = null
 
   try {
@@ -197,7 +228,7 @@ async function toggleClient(client: Client) {
 
     await loadClients()
   } catch (requestError) {
-    error.value = extractErrorMessage(requestError, 'Nao foi possivel alterar o status do cliente.')
+    actionError.value = extractErrorMessage(requestError, 'Não foi possível alterar o status do cliente.')
   } finally {
     saving.value = false
   }
@@ -205,5 +236,52 @@ async function toggleClient(client: Client) {
 
 function statusLabel(status: Client['status']) {
   return status === 'active' ? 'Ativo' : 'Inativo'
+}
+
+function updateDocument(event: Event) {
+  const input = event.target as HTMLInputElement
+  form.document = maskDocument(input.value, form.document_type)
+  input.value = form.document
+}
+
+function updateContact(event: Event) {
+  const input = event.target as HTMLInputElement
+  form.contact = maskPhone(input.value)
+  input.value = form.contact
+}
+
+function onlyDigits(value: string) {
+  return value.replace(/\D/g, '')
+}
+
+function maskDocument(value: string, type: DocumentType) {
+  const digits = onlyDigits(value).slice(0, type === 'cpf' ? 11 : 14)
+
+  if (type === 'cpf') {
+    return digits
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4')
+  }
+
+  return digits
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4')
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5')
+}
+
+function maskPhone(value: string) {
+  const digits = onlyDigits(value).slice(0, 11)
+
+  if (digits.length <= 10) {
+    return digits
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/^(\(\d{2}\) \d{4})(\d)/, '$1-$2')
+  }
+
+  return digits
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/^(\(\d{2}\) \d{5})(\d)/, '$1-$2')
 }
 </script>

@@ -1,19 +1,36 @@
 <template>
   <main class="login-page">
     <section class="login-panel" aria-labelledby="login-title">
-      <p class="eyebrow">Amar Assist</p>
-      <h1 id="login-title">Acesso</h1>
+      <div class="login-brand">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <div>
+          <p class="eyebrow">Amar Assist</p>
+          <h1 id="login-title">Acesso</h1>
+        </div>
+      </div>
+      <p class="login-copy">Entre para acompanhar clientes, contratos e cobranças com segurança.</p>
 
-      <form class="stack" @submit.prevent="submitLogin">
+      <form class="login-form" @submit.prevent="submitLogin">
         <label>
           E-mail
-          <input v-model="email" type="email" autocomplete="email" required />
+          <input v-model="email" type="email" autocomplete="email" required autofocus />
         </label>
 
-        <label>
-          Senha
-          <input v-model="password" type="password" autocomplete="current-password" required />
-        </label>
+        <div class="password-field">
+          <label for="password">Senha</label>
+          <div class="password-control">
+            <input
+              id="password"
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              required
+            />
+            <button type="button" class="ghost-button" @click="showPassword = !showPassword">
+              {{ showPassword ? 'Ocultar' : 'Mostrar' }}
+            </button>
+          </div>
+        </div>
 
         <p v-if="error" class="feedback feedback-error" role="alert">{{ error }}</p>
 
@@ -39,6 +56,7 @@ const emit = defineEmits<{
 
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 
 function submitLogin() {
   emit('login', email.value, password.value)

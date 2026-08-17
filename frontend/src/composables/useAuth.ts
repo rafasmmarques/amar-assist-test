@@ -31,7 +31,7 @@ export function useAuth() {
     try {
       user.value = await loginRequest(email, password)
     } catch {
-      error.value = 'Nao foi possivel entrar com essas credenciais.'
+      error.value = 'Não foi possível entrar com essas credenciais.'
       user.value = null
     } finally {
       loading.value = false

@@ -1,21 +1,37 @@
 <template>
   <main class="dashboard-shell">
-    <aside class="sidebar" aria-label="Navegacao principal">
-      <div>
-        <p class="eyebrow">Amar Assist</p>
-        <h1>Operacao</h1>
+    <aside class="sidebar" aria-label="Navegação principal">
+      <div class="brand-block">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <div>
+          <p class="eyebrow">Amar Assist</p>
+          <h1>Operação</h1>
+        </div>
       </div>
 
       <nav class="nav-list">
-        <button type="button" :class="{ active: view === 'clients' }" @click="$emit('change-view', 'clients')">
+        <button
+          type="button"
+          :aria-current="view === 'clients' ? 'page' : undefined"
+          :class="{ active: view === 'clients' }"
+          @click="$emit('change-view', 'clients')"
+        >
+          <span class="nav-dot" aria-hidden="true"></span>
           Clientes
         </button>
-        <button type="button" :class="{ active: view === 'charges' }" @click="$emit('change-view', 'charges')">
-          Cobrancas
+        <button
+          type="button"
+          :aria-current="view === 'charges' ? 'page' : undefined"
+          :class="{ active: view === 'charges' }"
+          @click="$emit('change-view', 'charges')"
+        >
+          <span class="nav-dot" aria-hidden="true"></span>
+          Cobranças
         </button>
       </nav>
 
       <div class="user-box">
+        <span class="user-label">Usuário conectado</span>
         <strong>{{ user.name }}</strong>
         <span>{{ user.email }}</span>
         <button type="button" class="secondary-button" :disabled="loading" @click="$emit('logout')">
