@@ -4,9 +4,9 @@ Sistema simples de cobrancas em monorepo, planejado para backend Laravel 9, fron
 
 ## Estado atual
 
-Este repositorio esta na Fase 5 do plano de implementacao: Docker Compose.
+Este repositorio esta na Fase 6 do plano de implementacao: Autenticacao Sanctum.
 
-O backend Laravel 9 foi criado em `backend/` com os pacotes Sanctum e Horizon instalados em versoes compativeis. O frontend Vue 3 com Vite foi criado em `frontend/`. O ambiente Docker Compose sobe backend PHP-FPM, Nginx, frontend Vite, MySQL, Redis, worker de filas e Horizon. Ainda nao ha configuracao SPA do Sanctum, regras funcionais, rotas de dominio, migrations de dominio, telas funcionais ou regras de autorizacao.
+O backend Laravel 9 foi criado em `backend/` com os pacotes Sanctum e Horizon instalados em versoes compativeis. O frontend Vue 3 com Vite foi criado em `frontend/`. O ambiente Docker Compose sobe backend PHP-FPM, Nginx, frontend Vite, MySQL, Redis, worker de filas e Horizon. A autenticacao SPA usa cookies de sessao do Sanctum, CSRF e endpoints minimos de login, usuario autenticado e logout. Ainda nao ha regras funcionais, rotas de dominio, migrations de dominio, telas de negocio ou regras de autorizacao.
 
 Laravel 9 esta fora do suporte atual, mas permanece como requisito obrigatorio do teste. Nao deve ser atualizado para Laravel 10+ sem mudanca explicita do requisito.
 
@@ -38,6 +38,15 @@ Servicos e portas expostas:
 - `mysql`: MySQL em `localhost:3307`.
 - `redis`: Redis em `localhost:6379`.
 - `backend`, `queue` e `horizon`: servicos internos PHP/Laravel.
+
+## Autenticacao
+
+Endpoints iniciais:
+
+- `GET /sanctum/csrf-cookie`: gera o cookie CSRF para a SPA.
+- `POST /api/login`: inicia sessao com `email` e `password`.
+- `GET /api/user`: retorna o usuario autenticado.
+- `POST /api/logout`: encerra a sessao autenticada.
 
 ## Documentacao
 

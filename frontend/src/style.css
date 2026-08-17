@@ -33,8 +33,8 @@ select {
   box-sizing: border-box;
 }
 
-.intro {
-  width: min(100%, 680px);
+.auth-panel {
+  width: min(100%, 420px);
 }
 
 .eyebrow {
@@ -49,8 +49,8 @@ select {
 h1 {
   margin: 0 0 16px;
   color: #111827;
-  font-size: clamp(2rem, 6vw, 4rem);
-  line-height: 1;
+  font-size: 2.5rem;
+  line-height: 1.1;
   letter-spacing: 0;
 }
 
@@ -59,4 +59,60 @@ p {
   color: #4b5563;
   font-size: 1.125rem;
   line-height: 1.7;
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: #374151;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #111827;
+  background: #ffffff;
+}
+
+button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 16px;
+  color: #ffffff;
+  background: #226b5f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.error-message {
+  color: #b42318;
+  font-size: 0.95rem;
+}
+
+.session-summary {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.session-summary span {
+  color: #4b5563;
 }
