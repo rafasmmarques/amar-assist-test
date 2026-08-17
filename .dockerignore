@@ -1,0 +1,9 @@
+.git
+.fallow
+backend/.env
+backend/vendor
+backend/storage/logs
+frontend/node_modules
+frontend/dist
+**/.DS_Store
+**/*.log
