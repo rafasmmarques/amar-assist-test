@@ -51,6 +51,7 @@ coverage/
 *.lcov
 
 # Arquivos locais do Codex
+.codex/agents/
 .codex/tmp/
 .codex/cache/
-
+AGENTS.md
