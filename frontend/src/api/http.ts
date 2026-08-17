@@ -1,5 +1,12 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
+export type ApiValidationErrors = Record<string, string[]>
+
+export type ApiError = {
+  message?: string
+  errors?: ApiValidationErrors
+}
+
 type RequestOptions = RequestInit & {
   json?: unknown
 }
@@ -48,4 +55,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
 export function getCsrfCookie(): Promise<void> {
   return apiRequest<void>('/sanctum/csrf-cookie')
+}
+
+export function extractErrorMessage(error: unknown, fallback = 'Nao foi possivel concluir a operacao.'): string {
+  const apiError = error as ApiError
+  const firstFieldError = apiError.errors ? Object.values(apiError.errors).flat()[0] : null
+
+  return firstFieldError ?? apiError.message ?? fallback
 }
