@@ -13,6 +13,8 @@
 - CPF/CNPJ validam tamanho e digitos verificadores.
 - Documento de cliente e unico.
 - Cliente com qualquer contrato associado nao pode ser desativado.
+- Cliente inativo nao recebe novo contrato.
+- Cliente com contrato associado nao altera `document_type`.
 - Contrato preserva `person_type` com `PF` ou `PJ`.
 - CPF exige contrato `PF`; CNPJ exige contrato `PJ`.
 - Vencimento mensal usa o dia configurado ou o ultimo dia valido do mes.

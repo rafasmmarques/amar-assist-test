@@ -31,4 +31,11 @@ class Client extends Model
     {
         return $this->hasMany(Contract::class);
     }
+
+    public function expectedContractPersonType(): string
+    {
+        return $this->document_type === self::DOCUMENT_TYPE_CPF
+            ? Contract::PERSON_TYPE_PF
+            : Contract::PERSON_TYPE_PJ;
+    }
 }

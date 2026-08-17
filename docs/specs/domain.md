@@ -23,6 +23,8 @@ Esta especificacao define as regras de dominio para usuarios, clientes, contrato
 - `status` aceita somente `active` ou `inactive`.
 - Cliente com qualquer contrato associado nao pode ser desativado.
 - Desativacao deve ocorrer em transacao e verificar contratos no banco no momento da mudanca.
+- Cliente inativo nao pode receber novo contrato.
+- Cliente com contrato associado nao pode alterar `document_type`, para preservar a coerencia PF/PJ dos contratos existentes.
 
 ### Contratos
 
@@ -30,6 +32,7 @@ Esta especificacao define as regras de dominio para usuarios, clientes, contrato
 - Campos planejados: `id`, `client_id`, `person_type`, `billing_cycle_day`, `status`, `started_at`, `ended_at`, timestamps.
 - `person_type` aceita somente `PF` ou `PJ` e deve ser preservado por requisito do teste.
 - Cliente com CPF exige contrato `PF`; cliente com CNPJ exige contrato `PJ`.
+- Criacao de contrato deve ocorrer em transacao com bloqueio do cliente para coordenar status e associacao.
 - `billing_cycle_day` deve estar entre 1 e 31.
 - `status` aceita somente `active` ou `ended`.
 - `ended_at` e obrigatorio quando `status = ended`.

@@ -36,6 +36,7 @@ Regras de contrato:
 - `document` pode ser recebido com ou sem mascara.
 - Responses de cliente devem retornar `document` normalizado somente com digitos e `document_type`; formato mascarado, se necessario no frontend, deve ser derivado na UI.
 - Desativacao deve falhar quando houver qualquer contrato associado ao cliente.
+- Atualizacao deve falhar se tentar alterar `document_type` de cliente com contrato associado.
 
 ## Contratos
 
@@ -47,6 +48,7 @@ Regras de contrato:
 
 - `person_type` aceita somente `PF` ou `PJ`.
 - CPF do cliente exige `PF`; CNPJ exige `PJ`.
+- Cliente inativo nao pode receber novo contrato.
 - `billing_cycle_day` deve estar entre 1 e 31.
 - O endpoint de encerramento de contrato nao faz parte da superficie confirmada da API nesta fase. A decisao sobre `PATCH /contracts/{contract}/end` fica pendente e deve ser registrada antes de qualquer implementacao.
 
