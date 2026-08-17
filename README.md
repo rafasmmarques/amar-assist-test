@@ -1,18 +1,23 @@
 # Amar Assist Test
 
-Sistema simples de cobrancas em monorepo, planejado para backend Laravel 9, frontend Vue 3, MySQL, Redis, filas Redis, Horizon e Docker Compose.
+Sistema simples de cobrancas em monorepo, com backend Laravel 9, frontend Vue 3, MySQL, Redis, filas Redis, Horizon e Docker Compose.
+
+Laravel 9 esta fora do suporte atual, mas permanece como requisito obrigatorio deste teste. Nao atualizar para Laravel 10+ sem mudanca explicita do requisito.
 
 ## Estado atual
 
-Este repositorio esta na Fase 9 do plano de implementacao: Cobrancas.
+O projeto concluiu as fases funcionais previstas no plano:
 
-O backend Laravel 9 foi criado em `backend/` com os pacotes Sanctum e Horizon instalados em versoes compativeis. O frontend Vue 3 com Vite foi criado em `frontend/`. O ambiente Docker Compose sobe backend PHP-FPM, Nginx, frontend Vite, MySQL, Redis, worker de filas e Horizon. A autenticacao SPA usa cookies de sessao do Sanctum, CSRF e endpoints minimos de login, usuario autenticado e logout. O modelo de dados inicial inclui clientes, contratos, cobrancas e detalhes 1:1 de pagamento. Ainda nao ha telas de negocio.
-As APIs minimas de clientes e contratos foram adicionadas com validacao de CPF/CNPJ, coerencia PF/PJ, filtros de clientes, bloqueio de desativacao com contratos e calculo de vencimento mensal.
-As APIs de cobrancas permitem gerar cobranca simulada por contrato e competencia, listar com ordenacao de vencidas abertas primeiro, consultar totais discriminados e pagar com snapshot idempotente.
+- backend Laravel 9 em `backend/`, com Sanctum SPA, Horizon, PHPUnit e Pint;
+- frontend Vue 3 + Vite em `frontend/`, com telas de login, clientes e cobrancas;
+- Docker Compose com PHP-FPM, Nginx, frontend Vite, MySQL, Redis, worker de filas e Horizon;
+- APIs autenticadas para clientes, contratos e cobrancas;
+- geracao individual sincrona de cobrancas;
+- geracao em lote assincrona por Job Redis na fila `charges`;
+- cache pequeno de resumo operacional de cobrancas;
+- Horizon protegido por autenticacao/autorizacao.
 
-Laravel 9 esta fora do suporte atual, mas permanece como requisito obrigatorio do teste. Nao deve ser atualizado para Laravel 10+ sem mudanca explicita do requisito.
-
-## Estrutura inicial
+## Estrutura
 
 ```text
 backend/
@@ -25,60 +30,93 @@ README.md
 docker-compose.yml
 ```
 
-## Docker Compose
+## Requisitos locais
 
-Subir o ambiente local:
+- WSL2 com o projeto em `/home/rafaelmarques/projects/amar-assist-test`.
+- Docker Desktop integrado ao WSL.
+- Executar comandos no shell Linux do WSL, nunca por PowerShell, CMD ou caminhos em `/mnt/c`.
+
+## Ambiente
+
+Subir os servicos:
 
 ```bash
 docker compose up -d
 ```
 
-Servicos e portas expostas:
+Servicos e portas:
 
-- `nginx`: API Laravel em `http://localhost:8080`.
-- `frontend`: Vite em `http://localhost:5173`.
-- `mysql`: MySQL em `localhost:3307`.
-- `redis`: Redis em `localhost:6379`.
-- `backend`, `queue` e `horizon`: servicos internos PHP/Laravel.
+- API Laravel via Nginx: `http://localhost:8080`
+- Frontend Vite: `http://localhost:5173`
+- MySQL: `localhost:3307`
+- Redis: `localhost:6379`
+- Horizon: `http://localhost:8080/horizon`
 
-## Autenticacao
+O seeder atual cria dados de dominio para cliente, contrato e cobranca. Ele nao cria usuario demonstrativo; crie um usuario local apenas em ambiente de desenvolvimento quando precisar testar login manualmente.
 
-Endpoints iniciais:
+## Configuracao
 
-- `GET /sanctum/csrf-cookie`: gera o cookie CSRF para a SPA.
-- `POST /api/login`: inicia sessao com `email` e `password`.
-- `GET /api/user`: retorna o usuario autenticado.
-- `POST /api/logout`: encerra a sessao autenticada.
+Arquivos de exemplo:
 
-## Clientes e contratos
+- `/backend/.env.example`
+- `/frontend/.env.example`
 
-Endpoints iniciais autenticados:
+Nao versionar `.env` real, dumps, tokens ou segredos. No Docker Compose local, os valores sao apenas demonstrativos para ambiente de desenvolvimento.
 
-- `GET /api/clients`: lista clientes com filtros validados e paginacao.
-- `POST /api/clients`: cria cliente com CPF/CNPJ normalizado.
-- `GET /api/clients/{client}`: detalha cliente.
-- `PUT/PATCH /api/clients/{client}`: atualiza dados cadastrais.
-- `PATCH /api/clients/{client}/activate`: ativa cliente.
-- `PATCH /api/clients/{client}/deactivate`: desativa cliente sem contratos associados.
-- `GET /api/clients/{client}/contracts`: lista contratos de um cliente.
-- `POST /api/clients/{client}/contracts`: cria contrato PF/PJ compativel com o documento do cliente.
-- `GET /api/contracts/{contract}`: detalha contrato.
+## Comandos uteis
 
-## Cobrancas
+Instalar dependencias dentro dos containers:
 
-Endpoints iniciais autenticados:
+```bash
+docker compose exec backend composer install
+docker compose exec frontend npm install
+```
 
-- `GET /api/charges`: lista cobrancas com filtros validados, paginacao e ordenacao de abertas vencidas primeiro.
-- `GET /api/charges/{charge}`: detalha cobranca com totais discriminados ou snapshot de pagamento.
-- `POST /api/charges/generate`: gera cobranca simulada por contrato e competencia.
-- `POST /api/charges/{charge}/pay`: paga cobranca simulada de forma idempotente.
+Preparar banco local:
 
-## Documentacao
+```bash
+docker compose exec backend php artisan migrate:fresh --seed
+```
 
-- `AGENTS.md`: instrucoes operacionais do projeto para agentes.
-- `docs/implementation-plan.md`: plano de implementacao faseado.
-- `.codex/agents/`: definicoes dos subagentes planejados.
+Rodar testes backend com MySQL temporario:
 
-## Proximos passos
+```bash
+docker compose exec mysql mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS amar_assist_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON amar_assist_testing.* TO 'amar'@'%'; FLUSH PRIVILEGES;"
+docker compose exec -e DB_CONNECTION=mysql -e DB_HOST=mysql -e DB_PORT=3306 -e DB_DATABASE=amar_assist_testing -e DB_USERNAME=amar -e DB_PASSWORD=amar backend php artisan test
+```
 
-Seguir `docs/implementation-plan.md` fase a fase, sem antecipar scaffolds ou regras funcionais antes das especificacoes previstas.
+Rodar build frontend:
+
+```bash
+docker compose exec frontend npm run build
+```
+
+Verificar Horizon:
+
+```bash
+docker compose exec backend php artisan horizon:status
+```
+
+## API
+
+Documentacao resumida:
+
+- `/docs/api.md`
+
+Specs versionadas:
+
+- `/docs/specs/domain.md`
+- `/docs/specs/api.md`
+- `/docs/specs/security.md`
+- `/docs/specs/acceptance.md`
+- `/docs/specs/traceability.md`
+
+## Decisoes e limitacoes
+
+- Valores monetarios sao tratados como strings decimais no contrato HTTP e nunca como `float`.
+- Datas de cobranca usam `America/Sao_Paulo`.
+- Geracao e pagamento de cobrancas sao idempotentes e transacionais.
+- PAN completo, CVV e dados sensiveis de cartao nao sao aceitos, persistidos, retornados ou logados.
+- O endpoint individual `POST /api/charges/generate` e sincrono.
+- O endpoint em lote `POST /api/charges/batch-generate` apenas valida e despacha um Job Redis.
+- O `batch_id` e somente correlacao de logs; nao ha tabela de acompanhamento de lote nesta fase.
