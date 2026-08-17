@@ -39,5 +39,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/charges', [ChargeController::class, 'index']);
     Route::get('/charges/{charge}', [ChargeController::class, 'show']);
     Route::post('/charges/generate', [ChargeController::class, 'generate'])->middleware('throttle:charge-writes');
+    Route::post('/charges/batch-generate', [ChargeController::class, 'batchGenerate'])->middleware('throttle:charge-writes');
     Route::post('/charges/{charge}/pay', [ChargeController::class, 'pay'])->middleware('throttle:charge-writes');
 });

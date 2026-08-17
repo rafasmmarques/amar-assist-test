@@ -43,6 +43,7 @@
 - Responses nao expõem `card_reference`, PAN completo, CVV nem `pix_transaction_id`.
 - Listagens nao expõem `pix_key` nem `boleto_barcode`; detalhe expõe apenas os campos seguros definidos em `api.md`.
 - `POST /charges/generate` retorna `201 Created` na primeira geracao, pode retornar `200 OK` em repeticao idempotente, recebe `billing_period` em `YYYY-MM` e nao aceita `due_date`.
+- `POST /charges/batch-generate` exige autenticacao, valida todo o payload, retorna `202 Accepted` com `batch_id` e `queued_items`, despacha Job Redis e nao cria cobrancas sincronamente.
 - `billing_period` e persistido como data no primeiro dia do mes.
 - `POST /charges/{charge}/pay` aceita payload `{}` valido, retorna `200 OK`, nao aceita valores monetarios no payload, usa relogio do servidor em `America/Sao_Paulo` controlavel em testes, persiste snapshot e retorna o mesmo snapshot em repeticoes.
 - `POST /charges/{charge}/pay` aceita header opcional `Idempotency-Key` com ate 120 caracteres e deve retornar resultado consistente em repeticoes da mesma chave.
@@ -53,7 +54,7 @@
 - Sanctum SPA usa CSRF e cookies por ambiente.
 - Sanctum SPA tem dominios stateful configurados para local/Docker quando essa fase existir.
 - `POST /login` limita no maximo 5 tentativas por minuto por email normalizado e IP e retorna `429` ao exceder.
-- `POST /charges/generate` e `POST /charges/{charge}/pay` limitam no maximo 10 requisicoes por minuto por usuario autenticado e rota e retornam `429` ao exceder.
+- `POST /charges/generate`, `POST /charges/batch-generate` e `POST /charges/{charge}/pay` limitam no maximo 10 requisicoes por minuto por usuario autenticado e rota e retornam `429` ao exceder.
 - Login nao revela se o usuario existe.
 - Policies protegem rotas funcionais quando aplicavel.
 - Horizon fica protegido por autenticacao/autorizacao.
@@ -62,12 +63,12 @@
 
 ## Filas, Redis, cache e Horizon
 
-- Existe caso concreto de fila: geracao em lote de cobrancas por competencia.
+- Existe caso concreto de fila: `POST /charges/batch-generate`.
 - Redis e o driver planejado para filas.
-- Job e idempotente por competencia e contrato.
-- Job define `tries` e `backoff`.
+- Job usa conexao Redis, fila `charges`, e e idempotente por competencia e contrato.
+- Job define `tries` e `backoff`, reutiliza a regra de geracao individual e continua demais itens quando houver conflito isolado.
 - Cache e limitado a resumo operacional nao sensivel.
-- Cache tem TTL inicial de 60 segundos e invalidacao em criacao, atualizacao, pagamento e geracao em lote.
+- Cache tem TTL inicial de 60 segundos, nao armazena estado transitorio de Job e invalida em criacao individual, pagamento e processamento de geracao em lote.
 
 ## Testes futuros
 
@@ -89,10 +90,11 @@ Quando a implementacao existir, PHPUnit deve cobrir:
 - geracao idempotente e concorrencia;
 - ordenacao antes da paginacao;
 - Job com `Queue::fake()` e regra executada pelo Job;
+- `POST /charges/batch-generate` com payload valido, lote vazio, mais de 100 itens, contrato duplicado, metodo invalido, valores financeiros invalidos, payload sensivel rejeitado, ausencia de cobranca criada na requisicao e dispatch do Job;
 - ausencia de PAN e CVV em banco, logs e respostas.
 - ausencia de `card_reference` e `pix_transaction_id` em respostas;
 - throttle de login e protecao de escrita sensivel;
 - configuracao Sanctum SPA para CSRF, cookies e stateful domains.
-- Geracao em lote assincrona por Job Redis nao integra o endpoint individual `POST /charges/generate` revisado; se implementada futuramente, deve ter contrato proprio registrado antes.
+- Geracao em lote assincrona usa `POST /charges/batch-generate` e nao altera o endpoint individual `POST /charges/generate`.
 
 Frontend futuro deve validar minimamente login, filtros, estados de tela e consumo do contrato da API.

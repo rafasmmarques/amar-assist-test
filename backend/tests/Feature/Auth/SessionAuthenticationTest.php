@@ -74,6 +74,13 @@ class SessionAuthenticationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_authenticated_user_can_access_horizon_api(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->getJson('/horizon/api/stats')
+            ->assertOk();
+    }
+
     public function test_authenticated_user_can_read_session_and_logout(): void
     {
         $user = User::factory()->create([

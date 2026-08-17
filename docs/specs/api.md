@@ -57,6 +57,7 @@ Regras de contrato:
 - `GET /charges?page=&per_page=&status=&payment_method=&client=&contract=&due_from=&due_to=`
 - `GET /charges/{charge}`
 - `POST /charges/generate`
+- `POST /charges/batch-generate`
 - `POST /charges/{charge}/pay`
 
 Regras de contrato:
@@ -112,6 +113,58 @@ Regras:
     "fixed_fee_amount": "5.00",
     "due_date": "2026-08-10"
   }
+}
+```
+
+### Geracao em lote de cobrancas
+
+`POST /charges/batch-generate` valida um lote de cobrancas e envia o processamento para fila Redis. O endpoint exige autenticacao, nao cria cobrancas de forma sincrona e retorna `202 Accepted`.
+
+Payload minimo:
+
+```json
+{
+  "billing_period": "2026-08",
+  "items": [
+    {
+      "contract_id": 1,
+      "payment_method": "boleto",
+      "original_amount": "100.00",
+      "fixed_fee_amount": "5.00"
+    },
+    {
+      "contract_id": 2,
+      "payment_method": "pix",
+      "original_amount": "150.00",
+      "fixed_fee_amount": "0.00"
+    }
+  ]
+}
+```
+
+Regras:
+
+- `billing_period` e obrigatorio no formato `YYYY-MM`.
+- `items` e obrigatorio e deve conter entre 1 e 100 itens.
+- `items.*.contract_id` e obrigatorio, deve existir e nao pode se repetir no mesmo lote.
+- `items.*.payment_method` aceita somente `boleto`, `pix` ou `card`.
+- `items.*.original_amount` e obrigatorio, decimal positivo e enviado como string.
+- `items.*.fixed_fee_amount` e opcional, decimal maior ou igual a zero, enviado como string, com default `0.00`.
+- O payload nao aceita `due_date`, juros, status, PAN completo, CVV ou dados sensiveis.
+- Todo payload deve ser validado antes do dispatch; payload invalido nao deve gerar Job.
+- A resposta inclui `batch_id` UUID apenas como correlacao para logs e diagnostico; nao deve ser criada tabela de acompanhamento de lote nesta fase.
+- O processamento do lote deve reutilizar a mesma regra de geracao individual e nao duplicar logica financeira.
+- Item identico ja existente deve ser reutilizado sem erro.
+- Cobranca da mesma competencia com dados divergentes deve registrar conflito daquele item sem duplicar cobranca.
+- O lote deve continuar os demais itens e registrar resumo final seguro nos logs.
+
+Resposta aceita:
+
+```json
+{
+  "message": "Geracao de cobrancas enviada para processamento.",
+  "batch_id": "00000000-0000-0000-0000-000000000000",
+  "queued_items": 2
 }
 ```
 
@@ -270,7 +323,7 @@ Para erros nao relacionados a validacao, `errors` pode ser omitido.
 - Sanctum SPA deve configurar CSRF, cookies e dominios stateful por ambiente local/Docker.
 - Cookies de sessao devem respeitar configuracao segura por ambiente.
 - `POST /login` deve limitar no maximo 5 tentativas por minuto por combinacao de email normalizado e IP, retornando `429` quando excedido.
-- `POST /charges/generate` e `POST /charges/{charge}/pay` devem limitar no maximo 10 requisicoes por minuto por usuario autenticado e rota, retornando `429` quando excedido.
+- `POST /charges/generate`, `POST /charges/batch-generate` e `POST /charges/{charge}/pay` devem limitar no maximo 10 requisicoes por minuto por usuario autenticado e rota, retornando `429` quando excedido.
 
 ## Compatibilidade
 

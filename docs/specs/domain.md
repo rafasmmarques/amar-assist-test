@@ -122,9 +122,14 @@ A implementacao deve usar expressao SQL com `CASE` ou equivalente antes de `pagi
 ## Filas e cache
 
 - A geracao individual de `POST /charges/generate` e sincrona e nao despacha Job.
-- Geracao em lote por fila Redis permanece possibilidade futura e deve usar endpoint distinto ou contrato revisado antes da implementacao.
-- Quando houver Job de geracao em lote, ele deve ser idempotente por competencia e contrato, definir `tries` e `backoff`, e registrar falhas sem expor dados sensiveis.
+- Geracao em lote usa o endpoint `POST /charges/batch-generate`, que valida todo o payload, retorna `202 Accepted` e despacha um unico Job Redis para ate 100 itens.
+- O Job de geracao em lote deve usar conexao Redis, fila nomeada `charges`, `tries` limitado e `backoff`.
+- O Job deve carregar somente dados necessarios, reutilizar a regra de geracao individual, respeitar idempotencia `contract_id + billing_period`, tolerar reexecucao apos falha parcial, nao despachar Jobs recursivos e nao duplicar logica financeira.
+- Conflito de item por dados divergentes deve ser registrado como conflito daquele item; o lote continua os demais itens e registra resumo final seguro.
+- Logs do Job devem incluir `batch_id` e nao incluir PAN, CVV, valores sensiveis de cartao ou payload bruto.
 - Cache planejado: resumo operacional nao sensivel de cobrancas por status do usuario autenticado.
-- Chave planejada: `charges:summary:user:{user_id}:filters:{hash}`.
+- Chave planejada: `charges:summary:user:{user_id}:filters:{hash}:v:{version}`.
 - TTL inicial: 60 segundos.
-- Cache deve ser invalidado em criacao, atualizacao, pagamento e geracao em lote de cobrancas.
+- Conteudo do cache deve conter apenas contagens agregadas por status/metodo, sem documentos, chaves Pix, boletos, referencias de cartao ou dados pessoais.
+- Cache deve ser invalidado em criacao individual, pagamento e processamento de geracao em lote de cobrancas por meio da regra de geracao individual reutilizada pelo Job.
+- O cache nao deve armazenar estado transitorio do Job.

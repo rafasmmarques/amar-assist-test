@@ -3,6 +3,7 @@
 namespace App\Actions\Charges;
 
 use App\Models\Charge;
+use App\Support\Charges\ChargeSummaryCache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -40,6 +41,8 @@ class PayCharge
                 'paid_at' => now('America/Sao_Paulo'),
                 'idempotency_key' => $idempotencyKey,
             ]);
+
+            app(ChargeSummaryCache::class)->invalidate();
 
             return $lockedCharge->refresh();
         });

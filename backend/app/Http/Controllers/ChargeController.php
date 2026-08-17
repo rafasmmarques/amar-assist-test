@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Actions\Charges\GenerateCharge;
 use App\Actions\Charges\PayCharge;
 use App\Exceptions\ChargeGenerationConflict;
+use App\Http\Requests\Charges\BatchGenerateChargeRequest;
 use App\Http\Requests\Charges\GenerateChargeRequest;
 use App\Http\Requests\Charges\IndexChargeRequest;
 use App\Http\Requests\Charges\PayChargeRequest;
 use App\Http\Resources\ChargeResource;
+use App\Jobs\ProcessChargeBatch;
 use App\Models\Charge;
+use App\Support\Charges\ChargeSummaryCache;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class ChargeController extends Controller
@@ -21,14 +25,18 @@ class ChargeController extends Controller
 
         $filters = $request->validated();
         $referenceDate = now('America/Sao_Paulo')->toDateString();
-        $charges = Charge::query()
+        $baseQuery = Charge::query()
             ->with('contract.client')
             ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
             ->when(isset($filters['payment_method']), fn ($query) => $query->where('payment_method', $filters['payment_method']))
             ->when(isset($filters['contract']), fn ($query) => $query->where('contract_id', $filters['contract']))
             ->when(isset($filters['client']), fn ($query) => $query->whereHas('contract', fn ($contractQuery) => $contractQuery->where('client_id', $filters['client'])))
             ->when(isset($filters['due_from']), fn ($query) => $query->whereDate('due_date', '>=', $filters['due_from']))
-            ->when(isset($filters['due_to']), fn ($query) => $query->whereDate('due_date', '<=', $filters['due_to']))
+            ->when(isset($filters['due_to']), fn ($query) => $query->whereDate('due_date', '<=', $filters['due_to']));
+
+        $summary = app(ChargeSummaryCache::class)->remember((int) $request->user()->id, $filters, clone $baseQuery);
+
+        $charges = $baseQuery
             ->orderByRaw(
                 'CASE
                     WHEN status = ? AND due_date < ? THEN 0
@@ -48,6 +56,7 @@ class ChargeController extends Controller
                 'per_page' => $charges->perPage(),
                 'total' => $charges->total(),
                 'last_page' => $charges->lastPage(),
+                'summary' => $summary,
             ],
             'links' => [
                 'first' => $charges->url(1),
@@ -80,6 +89,22 @@ class ChargeController extends Controller
         return ChargeResource::make($result['charge'])->additional([
             'message' => $result['created'] ? 'Cobranca gerada com sucesso.' : 'Cobranca ja existente retornada.',
         ])->response()->setStatusCode($result['created'] ? Response::HTTP_CREATED : Response::HTTP_OK);
+    }
+
+    public function batchGenerate(BatchGenerateChargeRequest $request): JsonResponse
+    {
+        $this->authorize('create', Charge::class);
+
+        $validated = $request->validated();
+        $batchId = (string) Str::uuid();
+
+        ProcessChargeBatch::dispatch($batchId, $validated['billing_period'], $validated['items']);
+
+        return response()->json([
+            'message' => 'Geracao de cobrancas enviada para processamento.',
+            'batch_id' => $batchId,
+            'queued_items' => count($validated['items']),
+        ], Response::HTTP_ACCEPTED);
     }
 
     public function pay(PayChargeRequest $request, Charge $charge): JsonResponse

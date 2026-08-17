@@ -107,7 +107,7 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     working_dir: /var/www/html
-    command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=90
+    command: php artisan queue:work redis --queue=charges,default --sleep=3 --tries=3 --timeout=90
     environment:
       APP_ENV: local
       APP_DEBUG: "true"

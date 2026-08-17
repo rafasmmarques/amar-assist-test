@@ -41,9 +41,50 @@ class ChargeApiTest extends TestCase
             ->assertJsonPath('data.2.id', $paidLate->id)
             ->assertJsonStructure([
                 'data',
-                'meta' => ['current_page', 'per_page', 'total', 'last_page'],
+                'meta' => [
+                    'current_page',
+                    'per_page',
+                    'total',
+                    'last_page',
+                    'summary' => [
+                        'total',
+                        'by_status' => [Charge::STATUS_OPEN, Charge::STATUS_PAID],
+                        'by_payment_method' => [
+                            Charge::PAYMENT_METHOD_BOLETO,
+                            Charge::PAYMENT_METHOD_PIX,
+                            Charge::PAYMENT_METHOD_CARD,
+                        ],
+                    ],
+                ],
                 'links' => ['first', 'last', 'prev', 'next'],
             ]);
+    }
+
+    public function test_charge_list_summary_cache_is_invalidated_after_charge_generation(): void
+    {
+        $user = User::factory()->create();
+        $contract = Contract::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson('/api/charges')
+            ->assertOk()
+            ->assertJsonPath('meta.summary.total', 0);
+
+        $this->actingAs($user)
+            ->postJson('/api/charges/generate', [
+                'contract_id' => $contract->id,
+                'billing_period' => '2026-08',
+                'payment_method' => Charge::PAYMENT_METHOD_PIX,
+                'original_amount' => '100.00',
+            ])
+            ->assertCreated();
+
+        $this->actingAs($user)
+            ->getJson('/api/charges')
+            ->assertOk()
+            ->assertJsonPath('meta.summary.total', 1)
+            ->assertJsonPath('meta.summary.by_status.open', 1)
+            ->assertJsonPath('meta.summary.by_payment_method.pix', 1);
     }
 
     public function test_charge_detail_returns_discriminated_amounts(): void

@@ -31,7 +31,7 @@ Este documento liga requisitos do plano a especificacoes e validacoes futuras. E
 | R21 | Sanctum SPA, throttle de login e protecao de escritas sensiveis | Secoes 8, 9 e 18 | `api.md`, `security.md`, `acceptance.md` | Feature tests de throttle e configuracao local/Docker |
 | R22 | Envelope de paginacao e formato normalizado de documento | Secoes 7, 8 e 10 | `api.md`, `acceptance.md` | Feature tests de listagens e contrato frontend/API |
 | R23 | Contrato HTTP de pagamento simulado idempotente | Secoes 7, 8 e 14 | `domain.md`, `api.md`, `acceptance.md` | Feature tests de payload `{}`, rejeicao de valores monetarios, `Idempotency-Key` ate 120 caracteres, relogio controlado, envelope minimo, repeticao e snapshot |
-| R24 | Geracao em lote futura por Job Redis exige contrato proprio, idempotencia, `tries` e `backoff` | Secao 12 | `domain.md`, `acceptance.md` | Teste do Job e inspecao de configuracao quando o contrato existir |
+| R24 | Geracao em lote assincrona via `POST /charges/batch-generate` usa Redis, fila `charges`, idempotencia, `tries` e `backoff` | Secao 12 | `domain.md`, `api.md`, `acceptance.md` | Feature tests com `Queue::fake()`, teste direto do Job, conflitos e reexecucao parcial |
 
 ## Decisoes rastreadas
 
@@ -44,3 +44,4 @@ Este documento liga requisitos do plano a especificacoes e validacoes futuras. E
 - Cache de cobrancas deve ser pequeno, nao sensivel e invalidado explicitamente.
 - Endpoint de encerramento de contrato (`PATCH /contracts/{contract}/end`) permanece decisao pendente e nao integra a superficie confirmada da API ate que uma fase futura registre a regra de negocio e os criterios de aceite.
 - `POST /charges/generate` recebe `contract_id`, `billing_period` em `YYYY-MM`, `payment_method`, `original_amount` e `fixed_fee_amount` opcional; nao aceita `due_date`, nao usa valores financeiros fixos no codigo, gera detalhes simulados no backend e resolve idempotencia por `contract_id + billing_period`.
+- `POST /charges/batch-generate` e o contrato da geracao em lote assincrona; ele valida lote completo, retorna `202 Accepted`, despacha um Job Redis na fila `charges`, nao cria cobrancas sincronamente e usa `batch_id` apenas como correlacao de logs.

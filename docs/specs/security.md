@@ -45,7 +45,7 @@
 - Login e endpoints sensiveis devem ter rate limiting adequado ao Laravel 9.
 - `POST /login` deve ter throttle verificavel por teste de feature.
 - `POST /login` deve limitar no maximo 5 tentativas por minuto por email normalizado e IP, com rejeicao `429`.
-- `POST /charges/generate` e `POST /charges/{charge}/pay` devem limitar no maximo 10 requisicoes por minuto por usuario autenticado e rota, com rejeicao `429`.
+- `POST /charges/generate`, `POST /charges/batch-generate` e `POST /charges/{charge}/pay` devem limitar no maximo 10 requisicoes por minuto por usuario autenticado e rota, com rejeicao `429`.
 - Erros devem evitar stack traces, SQL, nomes de tabelas internos ou segredos.
 - CORS e dominios stateful do Sanctum devem ser configurados conforme ambiente Docker/local quando essa fase existir.
 - Configuracao do Sanctum SPA deve cobrir CSRF, cookies e `stateful` domains em ambiente local e Docker.
@@ -54,5 +54,5 @@
 
 - Cache deve armazenar apenas resumo operacional nao sensivel.
 - Chaves de cache nao devem expor dados pessoais ou segredos.
-- Filas Redis devem registrar falhas sem dados sensiveis.
+- Filas Redis devem registrar falhas e resumos com `batch_id`, sem payload bruto nem dados sensiveis.
 - Horizon nao pode ficar publico.

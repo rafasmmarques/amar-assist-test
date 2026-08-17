@@ -6,6 +6,7 @@ use App\Actions\Contracts\CalculateContractDueDate;
 use App\Exceptions\ChargeGenerationConflict;
 use App\Models\Charge;
 use App\Models\Contract;
+use App\Support\Charges\ChargeSummaryCache;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -79,6 +80,7 @@ class GenerateCharge
             }
 
             $charge->paymentDetail()->create($this->paymentDetailsFor($charge));
+            app(ChargeSummaryCache::class)->invalidate();
 
             return ['charge' => $charge->load('paymentDetail'), 'created' => true];
         });
