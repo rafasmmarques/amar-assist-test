@@ -4,9 +4,9 @@ Sistema simples de cobrancas em monorepo, planejado para backend Laravel 9, fron
 
 ## Estado atual
 
-Este repositorio esta na Fase 3 do plano de implementacao: scaffold do backend Laravel 9.
+Este repositorio esta na Fase 4 do plano de implementacao: scaffold do frontend Vue 3.
 
-O backend Laravel 9 foi criado em `backend/` com os pacotes Sanctum e Horizon instalados em versoes compativeis. Ainda nao ha scaffold de Vue, Docker, configuracao SPA do Sanctum, configuracao do Horizon, regras funcionais, rotas de dominio, migrations de dominio ou integracoes de filas/cache configuradas.
+O backend Laravel 9 foi criado em `backend/` com os pacotes Sanctum e Horizon instalados em versoes compativeis. O frontend Vue 3 com Vite foi criado em `frontend/`. Ainda nao ha Docker, configuracao SPA do Sanctum, configuracao do Horizon, regras funcionais, rotas de dominio, migrations de dominio, telas funcionais ou integracoes de filas/cache configuradas.
 
 Laravel 9 esta fora do suporte atual, mas permanece como requisito obrigatorio do teste. Nao deve ser atualizado para Laravel 10+ sem mudanca explicita do requisito.
 
